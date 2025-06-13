@@ -1,0 +1,319 @@
+package com.api.licitacao.controller;
+
+import com.api.licitacao.dto.CapaDTO;
+import com.api.licitacao.dto.CapaItemDTO;
+import com.api.licitacao.model.CotacaoDolar;
+import com.api.licitacao.model.Fornecedor;
+import com.api.licitacao.model.Produto;
+import com.api.licitacao.service.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.math3.dfp.DfpField;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+@RestController
+@RequestMapping("/api/processamento")
+@Tag(name = "Processamento Completo de PDFs", description = "Endpoints para processamento completo de documentos PDF com geração de planilhas Excel")
+public class ProcessamentoCompletoPdfController {
+
+    private final PdfReaderService pdfReaderService;
+    private final FornecedorService fornecedorService;
+    private final CotacaoDolarService cotacaoDolarService;
+    private final CapaService capaService;
+
+    public ProcessamentoCompletoPdfController(
+            PdfReaderService pdfReaderService,
+            FornecedorService fornecedorService,
+            CotacaoDolarService cotacaoDolarService,
+            CapaService capaService) {
+        this.pdfReaderService = pdfReaderService;
+        this.fornecedorService = fornecedorService;
+        this.cotacaoDolarService = cotacaoDolarService;
+        this.capaService = capaService;
+    }
+
+    @PostMapping(value = "/processar-pdfs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+        summary = "Processar múltiplos PDFs",
+        description = "Processa uma lista de documentos PDF, extrai dados, busca fornecedores, obtém cotação do dólar e gera planilha Excel para download"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Planilha Excel gerada com sucesso",
+                content = @Content(mediaType = "application/octet-stream")),
+        @ApiResponse(responseCode = "400", description = "Nenhum PDF válido foi enviado"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<byte[]> processarPdfsCompleto(
+            @Parameter(
+                description = "Lista de arquivos PDF para processamento", 
+                required = true,
+                content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+            )
+            @RequestParam("arquivos") List<MultipartFile> arquivos) {
+        
+        try {
+            if (arquivos.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // 1. Processar todos os PDFs e combinar os dados
+            CapaDTO capaBase = null;
+            List<CapaItemDTO> todosItens = new ArrayList<>();
+            
+            for (MultipartFile arquivo : arquivos) {
+                if (arquivo.isEmpty() || !isPdfFile(arquivo)) {
+                    continue;
+                }
+                
+                // 1.1 Ler PDF usando PdfReaderService
+                CapaDTO capaPdf = pdfReaderService.extrairDadosPdf(arquivo);
+                
+                // Usa o primeiro PDF como base para informações gerais
+                if (capaBase == null) {
+                    capaBase = capaPdf;
+                }
+                
+                // 1.2 Buscar produtos e fornecedores para cada PDF
+                Produto produto = criarProdutoDoCapa(capaPdf);
+                List<Fornecedor> fornecedores = fornecedorService.buscarFornecedores(produto);
+                
+                // Converter fornecedores em itens da capa
+                List<CapaItemDTO> itensParaPdf = criarItensDosFornecedores(fornecedores, todosItens.size());
+                todosItens.addAll(itensParaPdf);
+            }
+            
+            if (capaBase == null) {
+                return ResponseEntity.badRequest()
+                    .body("Nenhum PDF válido foi processado".getBytes());
+            }
+
+            // 3.2 Buscar cotação do dólar (data atual - 6 dias)
+            BigDecimal cotacaoDolar = buscarCotacaoDolarDataEspecifica();
+
+            // Criar CapaDTO completo com todos os dados
+            CapaDTO capaCompleta = new CapaDTO(
+                capaBase.processo(),
+                capaBase.dataHora(),
+                capaBase.organ(),
+                capaBase.headerTitle(),
+                capaBase.portal(),
+                capaBase.edital(),
+                capaBase.cliente(),
+                capaBase.objeto(),
+                capaBase.modalidade(),
+                capaBase.amostra(),
+                capaBase.entrega(),
+                capaBase.cr(),
+                capaBase.atestado(),
+                capaBase.impugnacao(),
+                capaBase.obs(),
+                cotacaoDolar,
+                todosItens
+            );
+
+            // 3.3 Gerar planilha capa.xlsx usando CapaService
+            byte[] planilhaBytes = capaService.generateCapa(capaCompleta);
+
+            // Configurar headers para download
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "capa_processada.xlsx");
+            headers.setContentLength(planilhaBytes.length);
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(planilhaBytes);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(("Erro ao processar PDFs: " + e.getMessage()).getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(("Erro interno: " + e.getMessage()).getBytes());
+        }
+    }
+
+    @PostMapping(value = "/processar-pdf-unico", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+        summary = "Processar PDF único",
+        description = "Processa um único documento PDF, extrai dados, busca fornecedores, obtém cotação do dólar e gera planilha Excel para download"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Planilha Excel gerada com sucesso",
+                content = @Content(mediaType = "application/octet-stream")),
+        @ApiResponse(responseCode = "400", description = "Arquivo deve ser um PDF válido"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<byte[]> processarPdfUnico(
+            @Parameter(
+                description = "Arquivo PDF para processamento", 
+                required = true,
+                content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+            )
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        
+        try {
+            if (arquivo.isEmpty() || !isPdfFile(arquivo)) {
+                return ResponseEntity.badRequest()
+                    .body("Arquivo deve ser um PDF válido".getBytes());
+            }
+
+            // 1.1 Ler PDF usando PdfReaderService
+            CapaDTO capaPdf = pdfReaderService.extrairDadosPdf(arquivo);
+            
+            // 1.2 Buscar produtos e fornecedores
+            Produto produto = criarProdutoDoCapa(capaPdf);
+            List<Fornecedor> fornecedores = fornecedorService.buscarFornecedores(produto);
+            
+            // Converter fornecedores em itens da capa
+            List<CapaItemDTO> itens = criarItensDosFornecedores(fornecedores, 0);
+
+            // 3.2 Buscar cotação do dólar (data atual - 6 dias)
+            BigDecimal cotacaoDolar = buscarCotacaoDolarDataEspecifica();
+
+            // Criar CapaDTO completo
+            CapaDTO capaCompleta = new CapaDTO(
+                capaPdf.processo(),
+                capaPdf.dataHora(),
+                capaPdf.organ(),
+                capaPdf.headerTitle(),
+                capaPdf.portal(),
+                capaPdf.edital(),
+                capaPdf.cliente(),
+                capaPdf.objeto(),
+                capaPdf.modalidade(),
+                capaPdf.amostra(),
+                capaPdf.entrega(),
+                capaPdf.cr(),
+                capaPdf.atestado(),
+                capaPdf.impugnacao(),
+                capaPdf.obs(),
+                cotacaoDolar,
+                itens
+            );
+
+            // 3.3 Gerar planilha capa.xlsx
+            byte[] planilhaBytes = capaService.generateCapa(capaCompleta);
+
+            // Configurar headers para download
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "capa_" + capaPdf.processo().replaceAll("[^a-zA-Z0-9]", "_") + ".xlsx");
+            headers.setContentLength(planilhaBytes.length);
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(planilhaBytes);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(("Erro ao processar PDF: " + e.getMessage()).getBytes());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(("Erro interno: " + e.getMessage()).getBytes());
+        }
+    }
+
+    private boolean isPdfFile(MultipartFile arquivo) {
+        String contentType = arquivo.getContentType();
+        String filename = arquivo.getOriginalFilename();
+        
+        return (contentType != null && contentType.equals("application/pdf")) ||
+               (filename != null && filename.toLowerCase().endsWith(".pdf"));
+    }
+
+    private Produto criarProdutoDoCapa(CapaDTO capa) {
+        Produto produto = new Produto();
+        produto.setDescricaoDetalhada(capa.objeto() != null ? capa.objeto() : "Produto padrão");
+        produto.setQuantidadeTotal(1);
+        produto.setUnidadeFornecimento("UN");
+        produto.setValorTotal(1000.0); // Valor padrão para busca
+        return produto;
+    }
+
+    private List<CapaItemDTO> criarItensDosFornecedores(List<Fornecedor> fornecedores, int numeroInicialItem) {
+        List<CapaItemDTO> itens = new ArrayList<>();
+        Random random = new Random();
+        
+        for (int i = 0; i < fornecedores.size(); i++) {
+            Fornecedor fornecedor = fornecedores.get(i);
+            
+            // Gerar valores aleatórios realistas para demonstração
+            int quantidade = random.nextInt(50) + 1; // 1 a 50 unidades
+            double custoBase = 50.0 + (random.nextDouble() * 200.0); // R$ 50 a R$ 250
+            double freteBase = 10.0 + (random.nextDouble() * 40.0); // R$ 10 a R$ 50
+            
+            CapaItemDTO item = new CapaItemDTO(
+                numeroInicialItem + i + 1, // item número sequencial
+                "Produto", // tipo
+                fornecedor.getNome() + " - " + fornecedor.getObservacao(), // descrição
+                quantidade,
+                BigDecimal.valueOf(10), // custo unitário
+                BigDecimal.valueOf(2)  // frete
+            );
+            
+            itens.add(item);
+        }
+        
+        return itens;
+    }
+
+    private BigDecimal buscarCotacaoDolarDataEspecifica() {
+        try {
+            // Data atual - 6 dias
+            LocalDate dataConsulta = LocalDate.now().minusDays(6);
+            String dataFormatada = dataConsulta.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            
+            System.out.println("Buscando cotação do dólar para a data: " + dataFormatada);
+            
+            CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar(dataFormatada);
+            
+            if (cotacao != null && cotacao.getValue() != null && !cotacao.getValue().isEmpty()) {
+                Double cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
+                System.out.println("Cotação encontrada: " + cotacaoVenda);
+                return BigDecimal.valueOf(cotacaoVenda);
+            } else {
+                System.out.println("Cotação não encontrada para a data especificada, tentando dias anteriores...");
+                
+                // Tenta até 10 dias atrás se não encontrar cotação (pode ser fim de semana/feriado)
+                for (int diasAtras = 7; diasAtras <= 15; diasAtras++) {
+                    LocalDate dataAlternativa = LocalDate.now().minusDays(diasAtras);
+                    String dataAlternativaFormatada = dataAlternativa.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                    
+                    cotacao = cotacaoDolarService.getCotacaoDolar(dataAlternativaFormatada);
+                    if (cotacao != null && cotacao.getValue() != null && !cotacao.getValue().isEmpty()) {
+                        Double cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
+                        System.out.println("Cotação encontrada para " + dataAlternativaFormatada + ": " + cotacaoVenda);
+                        return BigDecimal.valueOf(cotacaoVenda);
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar cotação do dólar: " + e.getMessage());
+        }
+        
+        // Valor padrão caso não encontre a cotação
+        System.out.println("Usando cotação padrão: 5.50");
+        return BigDecimal.valueOf(5.50);
+    }
+}

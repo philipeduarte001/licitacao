@@ -8,6 +8,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -23,9 +24,11 @@ public class CapaServiceImpl implements CapaService {
         DateTimeFormatter.ofPattern("dd/MM 'ÀS' HH:mm'H'");
     
     private final CotacaoDolarService cotacaoDolarService;
+    private final PdfReaderService pdfReaderService;
 
-    public CapaServiceImpl(CotacaoDolarService cotacaoDolarService) {
+    public CapaServiceImpl(CotacaoDolarService cotacaoDolarService, PdfReaderService pdfReaderService) {
         this.cotacaoDolarService = cotacaoDolarService;
+        this.pdfReaderService = pdfReaderService;
     }
 
     @Override
@@ -297,5 +300,10 @@ public class CapaServiceImpl implements CapaService {
             System.err.println("Erro ao buscar cotação automática do dólar: " + e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    public CapaDTO extrairDadosPdf(MultipartFile arquivo) throws IOException {
+        return pdfReaderService.extrairDadosPdf(arquivo);
     }
 }
