@@ -87,23 +87,44 @@ Adicione no `pom.xml`:
 </dependency>
 ```
 
-### 2. **Configuração application.properties**
+### 2. **Configuração de Variáveis de Ambiente**
+
+⚠️ **IMPORTANTE**: As credenciais foram movidas para variáveis de ambiente por segurança.
+
+#### **Configuração Inicial**
+
+```bash
+# 1. Copie o arquivo de exemplo
+cp environment.example environment.local
+
+# 2. Configure suas credenciais reais no environment.local
+# (Este arquivo está no .gitignore e não será commitado)
+
+# 3. Carregue as variáveis
+# Windows
+load-env.bat
+
+# Linux/Mac
+source load-env.sh
+```
+
+#### **Arquivo application.properties (sem credenciais)**
 
 ```properties
 # Servidor
-server.port=1234
+server.port=${SERVER_PORT:1234}
 
-# Azure Blob Storage
-azure.storage.connection-string=DefaultEndpointsProtocol=https;AccountName=stgcbeultramardev;AccountKey=bmrTMYZxou+NZU5WL92h/eXcysNViQyk7wHJXiuoYJFFAb133b3X52qIc/Tc6xarspKRnWPYVySz+AStdOqDhQ==;EndpointSuffix=core.windows.net
-azure.storage.container-name=editals
+# Azure Blob Storage (via variáveis de ambiente)
+azure.storage.connection-string=${AZURE_STORAGE_CONNECTION_STRING:}
+azure.storage.container-name=${AZURE_STORAGE_CONTAINER_NAME:editals}
 
-# Serviço de Processamento PDF na Nuvem
-cloud.pdf.service.url=https://app-cbe-ultramar-dev-azb9fnfvandvg7dx.brazilsouth-01.azurewebsites.net/score
-cloud.pdf.service.enabled=true
+# Serviço de Processamento PDF na Nuvem (via variáveis de ambiente)
+cloud.pdf.service.url=${CLOUD_PDF_SERVICE_URL:}
+cloud.pdf.service.enabled=${CLOUD_PDF_SERVICE_ENABLED:true}
 
 # Upload de arquivos
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+spring.servlet.multipart.max-file-size=${MAX_FILE_SIZE:10MB}
+spring.servlet.multipart.max-request-size=${MAX_REQUEST_SIZE:10MB}
 
 # Database H2 (para fornecedores)
 spring.datasource.url=jdbc:h2:mem:licitacaodb
@@ -115,13 +136,19 @@ spring.jpa.hibernate.ddl-auto=update
 springdoc.swagger-ui.path=/swagger
 ```
 
-### 3. **Variáveis de Ambiente (Produção)**
+### 3. **Variáveis de Ambiente Necessárias**
 
 ```bash
-export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=stgcbeultramardev;AccountKey=..."
-export AZURE_STORAGE_CONTAINER_NAME="editals"
-export CLOUD_PDF_SERVICE_URL="https://app-cbe-ultramar-dev-azb9fnfvandvg7dx.brazilsouth-01.azurewebsites.net/score"
-export CLOUD_PDF_SERVICE_ENABLED="true"
+# OBRIGATÓRIAS
+AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+CLOUD_PDF_SERVICE_URL="https://seu-servico.azurewebsites.net/score"
+
+# OPCIONAIS (têm valores padrão)
+SERVER_PORT=1234
+AZURE_STORAGE_CONTAINER_NAME=editals
+CLOUD_PDF_SERVICE_ENABLED=true
+MAX_FILE_SIZE=10MB
+MAX_REQUEST_SIZE=10MB
 ```
 
 ## 📡 Endpoints da API
@@ -468,12 +495,54 @@ curl http://localhost:1234/swagger
 
 ## 🔐 Segurança
 
-### **Boas Práticas**
+### **🛡️ Proteção de Credenciais**
 
-1. **Credentials**: Usar variáveis de ambiente em produção
-2. **File Validation**: Validar tipo e tamanho de arquivos
-3. **Rate Limiting**: Implementar limites de requisições
-4. **HTTPS**: Usar certificados SSL/TLS
+Este projeto foi configurado com as melhores práticas de segurança:
+
+#### **Variáveis de Ambiente Protegidas**
+
+```bash
+# ✅ SEGURO - Arquivos protegidos pelo .gitignore
+environment.local          # Suas credenciais reais (não commitado)
+environment.example        # Exemplo sem credenciais (commitado)
+
+# ❌ EVITADO - Credenciais hardcoded no código
+# azure.storage.connection-string=DefaultEndpointsProtocol=https;AccountName=...
+```
+
+#### **Estrutura de Arquivos de Security**
+
+```
+projeto/
+├── environment.example          # ✅ Template (commitado)
+├── environment.local           # ❌ Credenciais reais (ignorado)
+├── load-env.bat               # ✅ Script Windows (commitado)
+├── load-env.sh                # ✅ Script Linux/Mac (commitado)
+├── .gitignore                 # ✅ Proteções (commitado)
+└── SETUP_AMBIENTE.md          # ✅ Documentação (commitado)
+```
+
+### **Boas Práticas Implementadas**
+
+1. **✅ Credentials**: Variáveis de ambiente obrigatórias
+2. **✅ File Validation**: Validação de tipo e tamanho de arquivos
+3. **✅ Gitignore**: Proteção de arquivos sensíveis
+4. **✅ Documentation**: Guias de configuração segura
+5. **✅ Scripts**: Automação de carregamento de variáveis
+6. **✅ Environment Separation**: Diferentes configs por ambiente
+
+### **🚨 Alertas de Segurança**
+
+#### **NUNCA faça commit de:**
+- Arquivos `environment.local`
+- Arquivos `.env` com credenciais
+- Connection strings no código
+- Chaves de API hardcoded
+
+#### **SEMPRE use:**
+- Variáveis de ambiente para credenciais
+- Arquivos `.example` como templates
+- `.gitignore` para proteger arquivos sensíveis
 
 ## 📚 Documentação Adicional
 

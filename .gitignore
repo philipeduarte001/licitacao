@@ -1,0 +1,108 @@
+# ==============================================
+# ARQUIVOS SENSÍVEIS - NÃO COMMITTAR
+# ==============================================
+.env
+.env.local
+.env.production
+environment
+environment.local
+environment.production
+
+# Arquivos de configuração com credenciais
+application-prod.properties
+application-local.properties
+**/application-secrets.properties
+
+# ==============================================
+# JAVA / SPRING BOOT
+# ==============================================
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ==============================================
+# IDE
+# ==============================================
+.idea
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ==============================================
+# OS
+# ==============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.tmp
+*.log
+*.temp
+
+# ==============================================
+# LOGS
+# ==============================================
+*.log
+logs/
+log/
+
+# ==============================================
+# TEMPORARY FILES
+# ==============================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ==============================================
+# ARQUIVOS DE UPLOAD/DOWNLOAD
+# ==============================================
+uploads/
+downloads/
+temp/
+*.pdf
+*.xlsx
+*.xls
+
+# ==============================================
+# NODE MODULES (se houver frontend)
+# ==============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================================
+# DATABASE
+# ==============================================
+*.db
+*.sqlite
+*.sqlite3
+h2/
+database/
+
+# ==============================================
+# MAVEN
+# ==============================================
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar 
