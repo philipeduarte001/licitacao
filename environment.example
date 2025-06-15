@@ -1,0 +1,53 @@
+# ==============================================
+# CONFIGURAÇÕES DO SISTEMA DE LICITAÇÕES
+# ==============================================
+
+# Servidor
+SERVER_PORT=1234
+
+# ==============================================
+# AZURE BLOB STORAGE
+# ==============================================
+# Obtenha essas informações no Portal do Azure
+AZURE_STORAGE_ACCOUNT_NAME=your_storage_account_name
+AZURE_STORAGE_ACCOUNT_KEY=your_storage_account_key
+AZURE_STORAGE_CONTAINER_NAME=editals
+
+# Ou use a connection string completa (alternativa)
+# AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your_account;AccountKey=your_key;EndpointSuffix=core.windows.net
+
+# ==============================================
+# SERVIÇO DE PROCESSAMENTO PDF NA NUVEM
+# ==============================================
+CLOUD_PDF_SERVICE_URL=https://your-cloud-service.azurewebsites.net/score
+CLOUD_PDF_SERVICE_ENABLED=true
+
+# ==============================================
+# CONFIGURAÇÕES DE UPLOAD
+# ==============================================
+MAX_FILE_SIZE=10MB
+MAX_REQUEST_SIZE=10MB
+
+# ==============================================
+# DATABASE (H2 para desenvolvimento)
+# ==============================================
+DB_URL=jdbc:h2:mem:licitacaodb
+DB_USERNAME=sa
+DB_PASSWORD=
+
+# ==============================================
+# API EXTERNA - BANCO CENTRAL (Cotação Dólar)
+# ==============================================
+# URL pública - não precisa de credenciais
+BANCO_CENTRAL_API_URL=https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json
+
+# ==============================================
+# SWAGGER/DOCUMENTAÇÃO
+# ==============================================
+SWAGGER_PATH=/swagger
+
+# ==============================================
+# LOGS
+# ==============================================
+LOG_LEVEL_ROOT=INFO
+LOG_LEVEL_APPLICATION=DEBUG 
