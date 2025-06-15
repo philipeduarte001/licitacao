@@ -160,11 +160,11 @@ public class CloudPdfController {
     @PostMapping("/teste-json-response")
     @Operation(
         summary = "Testar parse de resposta JSON",
-        description = "Testa o parse de uma resposta JSON de exemplo do serviço na nuvem"
+        description = "Testa o parse de uma resposta JSON completa de exemplo do serviço na nuvem"
     )
     public ResponseEntity<CapaDTO> testarJsonResponse() {
         try {
-            // JSON de exemplo retornado pelo serviço na nuvem
+            // JSON completo de exemplo fornecido pela API do serviço na nuvem
             String jsonExample = """
                 {
                     "extracted_clausules": {
@@ -172,13 +172,24 @@ public class CloudPdfController {
                             {
                                 "processo": "2024-C5D7D",
                                 "dataHora": "14/05/2025 11:24",
-                                "cliente": "Secretaria de Estado da Segurança Pública e Defesa Social do Estado do Espírito Santo",
-                                "objeto": "Aquisição de 500 unidades de Lanternas Táticas para fortalecer a Polícia Civil do Estado do Espírito Santo - PCES, conforme a Meta 01/Etapa 04 do Plano de Trabalho do Convênio SENASP/MJSP Nº 952400/2023.",
-                                "cotacaoDolar": null,
+                                "organ": "Secretaria de Estado da Segurança Pública e Defesa Social do Estado do Espírito Santo",
+                                "headerTitle": "EDITAL DE PREGÃO ELETRÔNICO Nº 90009/2025",
+                                "portal": "Sistema de Compras do Governo Federal",
+                                "edital": "90009/2025",
+                                "cliente": "Polícia Civil do Estado do Espírito Santo - PCES",
+                                "objeto": "Aquisição de 500 unidades de lanternas táticas para fortalecer a Polícia Civil do Estado do Espírito Santo.",
+                                "modalidade": "Pregão Eletrônico",
+                                "amostra": "Não se aplica",
+                                "entrega": "30 a 90 dias corridos após emissão da Ordem de Fornecimento, no depósito do Serviço de Almoxarifado da PCES, em Vitória/ES.",
+                                "cr": "CR-952400/2023",
+                                "atestado": true,
+                                "impugnacao": "Até 3 dias úteis antes da abertura do certame.",
+                                "cotacaoDolar": "",
+                                "obs": "O edital prevê aquisição de lanternas táticas com especificações técnicas detalhadas, incluindo resistência à água e quedas, e autonomia mínima de 3 horas.",
                                 "items": [
                                     {
                                         "item": 1,
-                                        "descricao": "Lanternas Táticas de Mão, conforme especificação do Termo de Referência",
+                                        "descricao": "Lanternas Táticas de Mão, conforme especificação do Termo de Referência.",
                                         "quantidade": 500,
                                         "custoUnitario": 876.33,
                                         "frete": 0.0

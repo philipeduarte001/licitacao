@@ -163,33 +163,34 @@ public class CloudPdfProcessingService {
             // Pegar o primeiro elemento do array edital
             JsonNode editalData = editalArray.get(0);
             
-            // Extrair dados principais do edital
+            // Mapear TODOS os campos disponíveis no JSON de resposta
             String processo = extractFieldValue(editalData, "processo", "");
             LocalDateTime dataHora = parseDataHora(extractFieldValue(editalData, "dataHora", ""));
+            String organ = extractFieldValue(editalData, "organ", "");
+            String headerTitle = extractFieldValue(editalData, "headerTitle", "");
+            String portal = extractFieldValue(editalData, "portal", "");
+            String edital = extractFieldValue(editalData, "edital", "");
             String cliente = extractFieldValue(editalData, "cliente", "");
             String objeto = extractFieldValue(editalData, "objeto", "");
+            String modalidade = extractFieldValue(editalData, "modalidade", "");
+            String amostra = extractFieldValue(editalData, "amostra", "");
+            String entrega = extractFieldValue(editalData, "entrega", "");
+            String cr = extractFieldValue(editalData, "cr", "");
+            boolean atestado = parseAtestadoFromJson(editalData.get("atestado"));
+            String impugnacao = extractFieldValue(editalData, "impugnacao", "");
+            String obs = extractFieldValue(editalData, "obs", "Processado via serviço na nuvem");
             
             // Extrair cotação do dólar se disponível
             BigDecimal cotacaoDolar = extractBigDecimalValue(editalData, "cotacaoDolar");
             
             // Processar itens
             List<com.api.licitacao.dto.CapaItemDTO> itens = parseItensFromJson(editalData.get("items"));
-            
-            // Campos não fornecidos pelo serviço - usar valores padrão
-            String organ = "";
-            String headerTitle = objeto; // Usar objeto como título
-            String portal = "";
-            String edital = "";
-            String modalidade = "";
-            String amostra = "";
-            String entrega = "";
-            String cr = "";
-            boolean atestado = false;
-            String impugnacao = "";
-            String obs = "Processado via serviço na nuvem";
 
-            logger.info("Dados extraídos do serviço na nuvem para arquivo '{}': processo={}, objeto={}, items={}", 
-                fileName, processo, objeto, itens.size());
+            logger.info("Dados extraídos do serviço na nuvem para arquivo '{}': processo={}, cliente={}, objeto={}, modalidade={}, items={}", 
+                fileName, processo, cliente, objeto, modalidade, itens.size());
+
+            logger.debug("Detalhes adicionais extraídos: organ={}, portal={}, edital={}, cr={}, atestado={}", 
+                organ, portal, edital, cr, atestado);
 
             return new CapaDTO(
                 processo,
@@ -345,6 +346,32 @@ public class CloudPdfProcessingService {
         String valor = atestadoStr.toLowerCase().trim();
         return valor.equals("sim") || valor.equals("true") || valor.equals("yes") || 
                valor.equals("s") || valor.equals("1");
+    }
+
+    /**
+     * Converte JsonNode de atestado para boolean
+     */
+    private boolean parseAtestadoFromJson(JsonNode atestadoNode) {
+        if (atestadoNode == null || atestadoNode.isNull()) {
+            return false;
+        }
+        
+        // Se é boolean direto
+        if (atestadoNode.isBoolean()) {
+            return atestadoNode.asBoolean();
+        }
+        
+        // Se é string, usar método de conversão existente
+        if (atestadoNode.isTextual()) {
+            return parseAtestado(atestadoNode.asText());
+        }
+        
+        // Se é número (0 = false, qualquer outro = true)
+        if (atestadoNode.isNumber()) {
+            return atestadoNode.asInt() != 0;
+        }
+        
+        return false;
     }
 
     private CapaDTO criarCapaVazia() {

@@ -33,7 +33,7 @@ public record CloudServiceRequestDTO(
         return new CloudServiceRequestDTO(
             fileName,
             "editals",
-            "4",
+            "all",
             "./prompts",
             List.of("edital")
         );
