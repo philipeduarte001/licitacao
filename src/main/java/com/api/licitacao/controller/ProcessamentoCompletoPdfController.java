@@ -38,16 +38,19 @@ public class ProcessamentoCompletoPdfController {
     private final FornecedorService fornecedorService;
     private final CotacaoDolarService cotacaoDolarService;
     private final CapaService capaService;
+    private final AzureBlobService azureBlobService;
 
     public ProcessamentoCompletoPdfController(
             PdfReaderService pdfReaderService,
             FornecedorService fornecedorService,
             CotacaoDolarService cotacaoDolarService,
-            CapaService capaService) {
+            CapaService capaService,
+            AzureBlobService azureBlobService) {
         this.pdfReaderService = pdfReaderService;
         this.fornecedorService = fornecedorService;
         this.cotacaoDolarService = cotacaoDolarService;
         this.capaService = capaService;
+        this.azureBlobService = azureBlobService;
     }
 
     @PostMapping(value = "/processar-pdfs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -72,6 +75,18 @@ public class ProcessamentoCompletoPdfController {
         try {
             if (arquivos.isEmpty()) {
                 return ResponseEntity.badRequest().build();
+            }
+
+            // 0. Upload dos PDFs para Azure (extensão - não interfere na lógica existente)
+            List<String> nomesBlobs = new ArrayList<>();
+            try {
+                if (azureBlobService.isConfigured()) {
+                    nomesBlobs = azureBlobService.uploadMultiplosPdfs(arquivos);
+                    System.out.println("Arquivos enviados para Azure: " + nomesBlobs);
+                }
+            } catch (Exception e) {
+                System.err.println("Erro no upload para Azure (continuando processamento): " + e.getMessage());
+                // Continua o processamento mesmo com erro no upload
             }
 
             // 1. Processar todos os PDFs e combinar os dados
@@ -175,6 +190,18 @@ public class ProcessamentoCompletoPdfController {
             if (arquivo.isEmpty() || !isPdfFile(arquivo)) {
                 return ResponseEntity.badRequest()
                     .body("Arquivo deve ser um PDF válido".getBytes());
+            }
+
+            // 0. Upload do PDF para Azure (extensão - não interfere na lógica existente)
+            String nomeBlob = null;
+            try {
+                if (azureBlobService.isConfigured()) {
+                    nomeBlob = azureBlobService.uploadPdf(arquivo);
+                    System.out.println("Arquivo enviado para Azure: " + nomeBlob);
+                }
+            } catch (Exception e) {
+                System.err.println("Erro no upload para Azure (continuando processamento): " + e.getMessage());
+                // Continua o processamento mesmo com erro no upload
             }
 
             // 1.1 Ler PDF usando PdfReaderService

@@ -3,6 +3,9 @@ package com.api.licitacao.service;
 import com.api.licitacao.dto.CapaDTO;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +17,14 @@ import java.util.regex.Pattern;
 
 @Service
 public class PdfReaderService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PdfReaderService.class);
+
+    @Value("${cloud.pdf.service.enabled:true}")
+    private boolean cloudServiceEnabled;
+
+    private final CloudPdfProcessingService cloudPdfProcessingService;
+    private final AzureBlobService azureBlobService;
 
     // Padrões regex para extrair informações dos PDFs
     private static final Pattern PROCESSO_PATTERN = Pattern.compile("(?i)processo[\\s:\\-]*([\\w\\d\\-\\/\\.]+)");
@@ -33,13 +44,78 @@ public class PdfReaderService {
     private static final Pattern DATA_PATTERN = Pattern.compile("(\\d{1,2}[/\\-]\\d{1,2}[/\\-]\\d{2,4})");
     private static final Pattern HORA_PATTERN = Pattern.compile("(\\d{1,2}:\\d{2})");
 
+    public PdfReaderService(CloudPdfProcessingService cloudPdfProcessingService, AzureBlobService azureBlobService) {
+        this.cloudPdfProcessingService = cloudPdfProcessingService;
+        this.azureBlobService = azureBlobService;
+    }
+
     public CapaDTO extrairDadosPdf(MultipartFile arquivo) throws IOException {
+        // Estratégia 1: Tentar usar serviço na nuvem se habilitado e configurado
+        if (cloudServiceEnabled && cloudPdfProcessingService != null && cloudPdfProcessingService.isServiceAvailable()) {
+            try {
+                logger.info("Tentando processar PDF '{}' via serviço na nuvem", arquivo.getOriginalFilename());
+                
+                // Fazer upload do arquivo para Azure primeiro (se configurado)
+                String nomeBlob = null;
+                if (azureBlobService != null && azureBlobService.isConfigured()) {
+                    try {
+                        nomeBlob = azureBlobService.uploadPdf(arquivo);
+                        logger.info("PDF '{}' enviado para Azure como '{}'", arquivo.getOriginalFilename(), nomeBlob);
+                    } catch (Exception e) {
+                        logger.warn("Erro ao fazer upload para Azure, continuando com nome original: {}", e.getMessage());
+                        nomeBlob = arquivo.getOriginalFilename();
+                    }
+                } else {
+                    nomeBlob = arquivo.getOriginalFilename();
+                }
+
+                // Processar via serviço na nuvem usando o nome do blob
+                CapaDTO resultado = cloudPdfProcessingService.processarPdfNaNuvem(nomeBlob);
+                
+                // Verificar se o resultado é válido (contém dados úteis)
+                if (isValidCloudResult(resultado)) {
+                    logger.info("Processamento via serviço na nuvem bem-sucedido para '{}'", arquivo.getOriginalFilename());
+                    return resultado;
+                } else {
+                    logger.warn("Resultado do serviço na nuvem inválido, usando fallback local para '{}'", arquivo.getOriginalFilename());
+                }
+                
+            } catch (Exception e) {
+                logger.error("Erro ao processar PDF '{}' via serviço na nuvem: {}", arquivo.getOriginalFilename(), e.getMessage());
+                logger.warn("Usando fallback para processamento local");
+            }
+        }
+
+        // Estratégia 2: Fallback para processamento local usando regex
+        logger.info("Processando PDF '{}' via método local (regex)", arquivo.getOriginalFilename());
+        return extrairDadosLocal(arquivo);
+    }
+
+    /**
+     * Método original de extração usando regex (fallback)
+     */
+    private CapaDTO extrairDadosLocal(MultipartFile arquivo) throws IOException {
         try (PDDocument document = PDDocument.load(arquivo.getInputStream())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String texto = stripper.getText(document);
             
             return extrairInformacoes(texto);
         }
+    }
+
+    /**
+     * Verifica se o resultado do serviço na nuvem contém dados válidos
+     */
+    private boolean isValidCloudResult(CapaDTO resultado) {
+        if (resultado == null) {
+            return false;
+        }
+        
+        // Considera válido se pelo menos um campo principal está preenchido
+        return (resultado.processo() != null && !resultado.processo().trim().isEmpty()) ||
+               (resultado.objeto() != null && !resultado.objeto().trim().isEmpty()) ||
+               (resultado.edital() != null && !resultado.edital().trim().isEmpty()) ||
+               (resultado.cliente() != null && !resultado.cliente().trim().isEmpty());
     }
 
     private CapaDTO extrairInformacoes(String texto) {
