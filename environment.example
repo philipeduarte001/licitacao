@@ -36,10 +36,11 @@ DB_USERNAME=sa
 DB_PASSWORD=
 
 # ==============================================
-# API EXTERNA - BANCO CENTRAL (Cotação Dólar)
+# API EXTERNA - AWESOMEAPI (Cotação Dólar)
 # ==============================================
 # URL pública - não precisa de credenciais
-BANCO_CENTRAL_API_URL=https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json
+# Retorna cotação atual do dólar (campo "ask")
+AWESOMEAPI_URL=https://economia.awesomeapi.com.br/last/USD-BRL
 
 # ==============================================
 # SWAGGER/DOCUMENTAÇÃO

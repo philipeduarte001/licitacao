@@ -242,7 +242,8 @@ public class CloudPdfProcessingService {
                     descricao,
                     quantidade,
                     custoUnitario != null ? custoUnitario : BigDecimal.ZERO,
-                    frete != null ? frete : BigDecimal.ZERO
+                    frete != null ? frete : BigDecimal.ZERO,
+                    "N" // Nacional por padrão
                 );
                 
                 itens.add(capaItem);

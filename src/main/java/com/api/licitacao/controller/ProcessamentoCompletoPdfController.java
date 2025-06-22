@@ -22,9 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -120,8 +117,8 @@ public class ProcessamentoCompletoPdfController {
                     .body("Nenhum PDF válido foi processado".getBytes());
             }
 
-            // 3.2 Buscar cotação do dólar (data atual - 6 dias)
-            BigDecimal cotacaoDolar = buscarCotacaoDolarDataEspecifica();
+            // 3.2 Buscar cotação atual do dólar
+            BigDecimal cotacaoDolar = buscarCotacaoDolarAtual();
 
             // Criar CapaDTO completo com todos os dados
             CapaDTO capaCompleta = new CapaDTO(
@@ -214,8 +211,8 @@ public class ProcessamentoCompletoPdfController {
             // Converter fornecedores em itens da capa
             List<CapaItemDTO> itens = criarItensDosFornecedores(fornecedores, 0);
 
-            // 3.2 Buscar cotação do dólar (data atual - 6 dias)
-            BigDecimal cotacaoDolar = buscarCotacaoDolarDataEspecifica();
+            // 3.2 Buscar cotação atual do dólar
+            BigDecimal cotacaoDolar = buscarCotacaoDolarAtual();
 
             // Criar CapaDTO completo
             CapaDTO capaCompleta = new CapaDTO(
@@ -284,18 +281,39 @@ public class ProcessamentoCompletoPdfController {
         for (int i = 0; i < fornecedores.size(); i++) {
             Fornecedor fornecedor = fornecedores.get(i);
             
-            // Gerar valores aleatórios realistas para demonstração
+            // Determinar se é fornecedor nacional ou importado
+            String nacional;
+            BigDecimal custoUnitario;
+            BigDecimal frete;
+            
+            // Verificar se é o fornecedor americano
+            if (fornecedor.getNome().contains("Tactical Gear USA")) {
+                nacional = "Importado"; // Vazio = importado
+                // Valores em dólar para o fornecedor americano
+                double custoUSD = 25.0 + (random.nextDouble() * 75.0); // $25 a $100 USD
+                double freteUSD = 15.0 + (random.nextDouble() * 35.0); // $15 a $50 USD
+                custoUnitario = BigDecimal.valueOf(custoUSD);
+                frete = BigDecimal.valueOf(freteUSD);
+            } else {
+                nacional = "Nacional";
+                // Valores em reais para fornecedores nacionais
+                double custoBase = 50.0 + (random.nextDouble() * 200.0); // R$ 50 a R$ 250
+                double freteBase = 10.0 + (random.nextDouble() * 40.0); // R$ 10 a R$ 50
+                custoUnitario = BigDecimal.valueOf(custoBase);
+                frete = BigDecimal.valueOf(freteBase);
+            }
+            
+            // Gerar quantidade aleatória
             int quantidade = random.nextInt(50) + 1; // 1 a 50 unidades
-            double custoBase = 50.0 + (random.nextDouble() * 200.0); // R$ 50 a R$ 250
-            double freteBase = 10.0 + (random.nextDouble() * 40.0); // R$ 10 a R$ 50
             
             CapaItemDTO item = new CapaItemDTO(
                 numeroInicialItem + i + 1, // item número sequencial
                 "Produto", // tipo
                 fornecedor.getNome() + " - " + fornecedor.getObservacao(), // descrição
                 quantidade,
-                BigDecimal.valueOf(10), // custo unitário
-                BigDecimal.valueOf(2)  // frete
+                custoUnitario,
+                frete,
+                nacional
             );
             
             itens.add(item);
@@ -304,39 +322,23 @@ public class ProcessamentoCompletoPdfController {
         return itens;
     }
 
-    private BigDecimal buscarCotacaoDolarDataEspecifica() {
+    private BigDecimal buscarCotacaoDolarAtual() {
         try {
-            // Data atual - 6 dias
-            LocalDate dataConsulta = LocalDate.now().minusDays(6);
-            String dataFormatada = dataConsulta.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            System.out.println("Buscando cotação atual do dólar via AwesomeAPI...");
             
-            System.out.println("Buscando cotação do dólar para a data: " + dataFormatada);
+            CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar();
             
-            CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar(dataFormatada);
-            
-            if (cotacao != null && cotacao.getValue() != null && !cotacao.getValue().isEmpty()) {
-                Double cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
+            if (cotacao != null && cotacao.getCotacao() != null && !cotacao.getCotacao().isEmpty()) {
+                Double cotacaoVenda = Double.parseDouble(cotacao.getCotacao());
                 System.out.println("Cotação encontrada: " + cotacaoVenda);
                 return BigDecimal.valueOf(cotacaoVenda);
             } else {
-                System.out.println("Cotação não encontrada para a data especificada, tentando dias anteriores...");
-                
-                // Tenta até 10 dias atrás se não encontrar cotação (pode ser fim de semana/feriado)
-                for (int diasAtras = 7; diasAtras <= 15; diasAtras++) {
-                    LocalDate dataAlternativa = LocalDate.now().minusDays(diasAtras);
-                    String dataAlternativaFormatada = dataAlternativa.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                    
-                    cotacao = cotacaoDolarService.getCotacaoDolar(dataAlternativaFormatada);
-                    if (cotacao != null && cotacao.getValue() != null && !cotacao.getValue().isEmpty()) {
-                        Double cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
-                        System.out.println("Cotação encontrada para " + dataAlternativaFormatada + ": " + cotacaoVenda);
-                        return BigDecimal.valueOf(cotacaoVenda);
-                    }
-                }
+                System.out.println("Cotação não encontrada na resposta da API");
             }
             
         } catch (Exception e) {
             System.err.println("Erro ao buscar cotação do dólar: " + e.getMessage());
+            e.printStackTrace();
         }
         
         // Valor padrão caso não encontre a cotação

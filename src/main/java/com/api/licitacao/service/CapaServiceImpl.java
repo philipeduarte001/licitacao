@@ -107,7 +107,7 @@ public class CapaServiceImpl implements CapaService {
             CapaItemDTO it = items.get(i);
             XSSFRow row = s.getRow(dr);
             setCell(row, 0, it.item());
-            setCell(row, 1, it.tipo());
+            setCell(row, 1, it.nacional());
             setCell(row, 2, it.descricao());
             setCell(row, 3, it.quantidade());
             setCell(row, 4, it.custoUnitario().doubleValue());
@@ -157,14 +157,15 @@ public class CapaServiceImpl implements CapaService {
                 cotacaoVenda = dto.cotacaoDolar().doubleValue();
                 System.out.println("Usando cotação do DTO: " + cotacaoVenda);
             } else {
-                // Fallback: busca a cotação do dólar para a data atual
-                String dataAtual = LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                System.out.println("Buscando cotação para a data: " + dataAtual);
-                CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar(dataAtual);
+                // Fallback: busca a cotação atual do dólar via AwesomeAPI
+                System.out.println("Buscando cotação atual via AwesomeAPI...");
+                CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar();
                 
-                if (cotacao != null && !cotacao.getValue().isEmpty()) {
-                    cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
-                    System.out.println("Cotação obtida da API BACEN: " + cotacaoVenda);
+                if (cotacao != null && cotacao.getCotacao() != null && !cotacao.getCotacao().isEmpty()) {
+                    cotacaoVenda = Double.parseDouble(cotacao.getCotacao());
+                    System.out.println("Cotação obtida da API AwesomeAPI: " + cotacaoVenda);
+                } else {
+                    System.out.println("Não foi possível obter cotação da API AwesomeAPI");
                 }
             }
             
@@ -287,17 +288,19 @@ public class CapaServiceImpl implements CapaService {
 
     private BigDecimal buscarCotacaoDolarAtual() {
         try {
-            String dataAtual = LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-            CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar(dataAtual);
+            CotacaoDolar cotacao = cotacaoDolarService.getCotacaoDolar();
             
-            if (cotacao != null && !cotacao.getValue().isEmpty()) {
-                Double cotacaoVenda = cotacao.getValue().get(0).getCotacaoVenda();
+            if (cotacao != null && cotacao.getCotacao() != null && !cotacao.getCotacao().isEmpty()) {
+                Double cotacaoVenda = Double.parseDouble(cotacao.getCotacao());
                 if (cotacaoVenda != null) {
                     return BigDecimal.valueOf(cotacaoVenda);
                 }
+            } else {
+                System.out.println("Não foi possível obter cotação da API AwesomeAPI");
             }
         } catch (Exception e) {
             System.err.println("Erro ao buscar cotação automática do dólar: " + e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }

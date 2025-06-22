@@ -10,5 +10,6 @@ public record ItemDTO(
     String empresa,
     String marcaMod,
     BigDecimal custo,
-    BigDecimal valores
+    BigDecimal valores,
+    String nacional
 ) {}
