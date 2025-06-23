@@ -94,7 +94,7 @@ public class CapaServiceImpl implements CapaService {
     }
 
     private void fillItems(XSSFSheet s, List<CapaItemDTO> items) {
-        final int BASE_DATA_ROW    = 13; // índice zero-based da 14ª linha
+        final int BASE_DATA_ROW    = 13;
         final int BASE_FORMULA_ROW = 14;
 
         for (int i = 0; i < items.size(); i++) {
@@ -107,7 +107,7 @@ public class CapaServiceImpl implements CapaService {
             CapaItemDTO it = items.get(i);
             XSSFRow row = s.getRow(dr);
             setCell(row, 0, it.item());
-            setCell(row, 1, it.nacional());
+            setCell(row, 1, it.nacional() ? "Nacional" : "Importado");
             setCell(row, 2, it.descricao());
             setCell(row, 3, it.quantidade());
             setCell(row, 4, it.custoUnitario().doubleValue());

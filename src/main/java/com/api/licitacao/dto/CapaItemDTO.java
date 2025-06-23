@@ -9,5 +9,5 @@ public record CapaItemDTO(
     int quantidade,
     BigDecimal custoUnitario,
     BigDecimal frete,
-    String nacional
+    boolean nacional
 ) {}

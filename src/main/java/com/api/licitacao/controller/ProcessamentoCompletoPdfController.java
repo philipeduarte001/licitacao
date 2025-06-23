@@ -281,35 +281,30 @@ public class ProcessamentoCompletoPdfController {
         for (int i = 0; i < fornecedores.size(); i++) {
             Fornecedor fornecedor = fornecedores.get(i);
             
-            // Determinar se é fornecedor nacional ou importado
-            String nacional;
+            boolean nacional;
             BigDecimal custoUnitario;
             BigDecimal frete;
             
-            // Verificar se é o fornecedor americano
             if (fornecedor.getNome().contains("Tactical Gear USA")) {
-                nacional = "Importado"; // Vazio = importado
-                // Valores em dólar para o fornecedor americano
+                nacional = false; // Importado
                 double custoUSD = 25.0 + (random.nextDouble() * 75.0); // $25 a $100 USD
                 double freteUSD = 15.0 + (random.nextDouble() * 35.0); // $15 a $50 USD
                 custoUnitario = BigDecimal.valueOf(custoUSD);
                 frete = BigDecimal.valueOf(freteUSD);
             } else {
-                nacional = "Nacional";
-                // Valores em reais para fornecedores nacionais
+                nacional = true; // Nacional
                 double custoBase = 50.0 + (random.nextDouble() * 200.0); // R$ 50 a R$ 250
                 double freteBase = 10.0 + (random.nextDouble() * 40.0); // R$ 10 a R$ 50
                 custoUnitario = BigDecimal.valueOf(custoBase);
                 frete = BigDecimal.valueOf(freteBase);
             }
             
-            // Gerar quantidade aleatória
-            int quantidade = random.nextInt(50) + 1; // 1 a 50 unidades
+            int quantidade = random.nextInt(50) + 1;
             
             CapaItemDTO item = new CapaItemDTO(
-                numeroInicialItem + i + 1, // item número sequencial
-                "Produto", // tipo
-                fornecedor.getNome() + " - " + fornecedor.getObservacao(), // descrição
+                numeroInicialItem + i + 1,
+                "Produto",
+                fornecedor.getNome() + " - " + fornecedor.getObservacao(),
                 quantidade,
                 custoUnitario,
                 frete,
