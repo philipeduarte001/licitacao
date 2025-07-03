@@ -1,57 +1,59 @@
 package com.api.licitacao.model;
 
-import lombok.Data;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Data
 public class CotacaoDolar {
-    private String odataContext;
-    private List<CotacaoDolarValue> value;
+    @JsonProperty("moeda")
+    private String moeda;
+    
+    @JsonProperty("tipo")
+    private String tipo;
+    
+    @JsonProperty("cotacao")
+    private String cotacao;
+    
+    @JsonProperty("dataCotacao")
+    private String dataCotacao;
 
-    @Data
-    public static class CotacaoDolarValue {
-        private Double cotacaoCompra;
-        private Double cotacaoVenda;
-        private String dataHoraCotacao;
-
-        public Double getCotacaoCompra() {
-            return cotacaoCompra;
-        }
-
-        public void setCotacaoCompra(Double cotacaoCompra) {
-            this.cotacaoCompra = cotacaoCompra;
-        }
-
-        public Double getCotacaoVenda() {
-            return cotacaoVenda;
-        }
-
-        public void setCotacaoVenda(Double cotacaoVenda) {
-            this.cotacaoVenda = cotacaoVenda;
-        }
-
-        public String getDataHoraCotacao() {
-            return dataHoraCotacao;
-        }
-
-        public void setDataHoraCotacao(String dataHoraCotacao) {
-            this.dataHoraCotacao = dataHoraCotacao;
-        }
+    public CotacaoDolar() {
     }
 
-    public String getOdataContext() {
-        return odataContext;
+    public CotacaoDolar(String moeda, String tipo, String cotacao, String dataCotacao) {
+        this.moeda = moeda;
+        this.tipo = tipo;
+        this.cotacao = cotacao;
+        this.dataCotacao = dataCotacao;
     }
 
-    public void setOdataContext(String odataContext) {
-        this.odataContext = odataContext;
+    public String getMoeda() {
+        return moeda;
     }
 
-    public List<CotacaoDolarValue> getValue() {
-        return value;
+    public void setMoeda(String moeda) {
+        this.moeda = moeda;
     }
 
-    public void setValue(List<CotacaoDolarValue> value) {
-        this.value = value;
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public String getCotacao() {
+        return cotacao;
+    }
+
+    public void setCotacao(String cotacao) {
+        this.cotacao = cotacao;
+    }
+
+    public String getDataCotacao() {
+        return dataCotacao;
+    }
+
+    public void setDataCotacao(String dataCotacao) {
+        this.dataCotacao = dataCotacao;
     }
 }

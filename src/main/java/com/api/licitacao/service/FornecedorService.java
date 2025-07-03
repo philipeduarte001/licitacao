@@ -37,6 +37,13 @@ public class FornecedorService {
         casaPesca.setEmail("contato@casadapesca.com.br");
         casaPesca.setObservacao("Comercializa lanternas de alta performance e táticas");
 
-        return Arrays.asList(mundoCarabina, falconArmas, casaPesca);
+        Fornecedor tacticalGearUSA = new Fornecedor();
+        tacticalGearUSA.setNome("Tactical Gear USA");
+        tacticalGearUSA.setSite("https://www.tacticalgearusa.com/");
+        tacticalGearUSA.setTelefone("+1 (555) 123-4567");
+        tacticalGearUSA.setEmail("sales@tacticalgearusa.com");
+        tacticalGearUSA.setObservacao("Fornecedor americano especializado em equipamentos táticos militares - Preços em USD");
+
+        return Arrays.asList(mundoCarabina, falconArmas, casaPesca, tacticalGearUSA);
     }
 } 

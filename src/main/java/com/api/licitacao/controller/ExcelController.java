@@ -11,11 +11,15 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/excel")
-@RequiredArgsConstructor
 public class ExcelController {
 
     private final ResultadoService resultadoService;
     private final CapaService capaService;
+
+    public ExcelController(ResultadoService resultadoService, CapaService capaService) {
+        this.resultadoService = resultadoService;
+        this.capaService = capaService;
+    }
 
     @PostMapping(
         value = "/resultado",

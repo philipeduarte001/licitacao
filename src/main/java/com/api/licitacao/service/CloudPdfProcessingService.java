@@ -254,11 +254,12 @@ public class CloudPdfProcessingService {
                 
                 com.api.licitacao.dto.CapaItemDTO capaItem = new com.api.licitacao.dto.CapaItemDTO(
                     item,
-                    "Produto", // Tipo padrão
+                    "Produto",
                     descricao,
                     quantidade,
                     custoUnitario != null ? custoUnitario : BigDecimal.ZERO,
-                    frete != null ? frete : BigDecimal.ZERO
+                    frete != null ? frete : BigDecimal.ZERO,
+                    true // Nacional por padrão para itens da nuvem
                 );
                 
                 itens.add(capaItem);

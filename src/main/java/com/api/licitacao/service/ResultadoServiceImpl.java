@@ -70,6 +70,7 @@ public class ResultadoServiceImpl implements ResultadoService {
             setCellValue(dataRow, 5, item.marcaMod());
             setCellValue(dataRow, 6, item.custo().doubleValue());
             setCellValue(dataRow, 7, item.valores().doubleValue());
+            setCellValue(dataRow, 8, item.nacional().trim());
 
             // Preenche as fórmulas dinamicamente, mantendo estilo original
             XSSFRow fRow = sheet.getRow(formulaRowIdx);
