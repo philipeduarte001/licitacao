@@ -176,4 +176,12 @@ public class AzureBlobService {
     public boolean isConfigured() {
         return connectionString != null && !connectionString.trim().isEmpty();
     }
+
+    /**
+     * Retorna o nome do container configurado
+     * @return Nome do container
+     */
+    public String getContainerName() {
+        return containerName;
+    }
 } 

@@ -51,6 +51,14 @@ public class CloudPdfProcessingService {
             return criarCapaVazia();
         }
 
+        // Validar se a URL está configurada
+        if (cloudServiceUrl == null || cloudServiceUrl.trim().isEmpty()) {
+            logger.error("URL do serviço na nuvem não está configurada. Verifique a propriedade 'cloud.pdf.service.url'");
+            return criarCapaVazia();
+        }
+
+        logger.info("URL do serviço na nuvem: {}", cloudServiceUrl);
+
         try {
             logger.info("Iniciando processamento do arquivo '{}' no serviço na nuvem", fileName);
 
@@ -66,7 +74,7 @@ public class CloudPdfProcessingService {
 
             // Fazer chamada HTTP
             ResponseEntity<String> response = restTemplate.exchange(
-                cloudServiceUrl,
+                java.net.URI.create(cloudServiceUrl),
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -100,6 +108,14 @@ public class CloudPdfProcessingService {
             return criarCapaVazia();
         }
 
+        // Validar se a URL está configurada
+        if (cloudServiceUrl == null || cloudServiceUrl.trim().isEmpty()) {
+            logger.error("URL do serviço na nuvem não está configurada. Verifique a propriedade 'cloud.pdf.service.url'");
+            return criarCapaVazia();
+        }
+
+        logger.info("URL do serviço na nuvem: {}", cloudServiceUrl);
+
         try {
             logger.info("Iniciando processamento customizado do arquivo '{}'", fileName);
 
@@ -117,7 +133,7 @@ public class CloudPdfProcessingService {
 
             // Fazer chamada HTTP
             ResponseEntity<String> response = restTemplate.exchange(
-                cloudServiceUrl,
+                java.net.URI.create(cloudServiceUrl),
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -400,5 +416,13 @@ public class CloudPdfProcessingService {
      */
     public CapaDTO testarParseJson(String jsonResponse) {
         return parseResponseToCapaDTO(jsonResponse, "teste.pdf");
+    }
+
+    /**
+     * Retorna a URL do serviço configurada
+     * @return URL do serviço
+     */
+    public String getServiceUrl() {
+        return cloudServiceUrl != null ? cloudServiceUrl : "NÃO CONFIGURADA";
     }
 } 

@@ -2,6 +2,7 @@ package com.api.licitacao.controller;
 
 import com.api.licitacao.dto.CapaDTO;
 import com.api.licitacao.service.CloudPdfProcessingService;
+import com.api.licitacao.service.AzureBlobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -19,9 +21,11 @@ import java.util.Map;
 public class CloudPdfController {
 
     private final CloudPdfProcessingService cloudPdfProcessingService;
+    private final AzureBlobService azureBlobService;
 
-    public CloudPdfController(CloudPdfProcessingService cloudPdfProcessingService) {
+    public CloudPdfController(CloudPdfProcessingService cloudPdfProcessingService, AzureBlobService azureBlobService) {
         this.cloudPdfProcessingService = cloudPdfProcessingService;
+        this.azureBlobService = azureBlobService;
     }
 
     @GetMapping("/status")
@@ -37,10 +41,12 @@ public class CloudPdfController {
         try {
             boolean serviceAvailable = cloudPdfProcessingService.isServiceAvailable();
             boolean connectionOk = cloudPdfProcessingService.testConnection();
+            String serviceUrl = cloudPdfProcessingService.getServiceUrl();
 
             Map<String, Object> status = Map.of(
                 "serviceEnabled", serviceAvailable,
                 "connectionOk", connectionOk,
+                "serviceUrl", serviceUrl,
                 "status", (serviceAvailable && connectionOk) ? "ONLINE" : "OFFLINE"
             );
 
@@ -49,6 +55,38 @@ public class CloudPdfController {
             Map<String, Object> error = Map.of(
                 "serviceEnabled", false,
                 "connectionOk", false,
+                "serviceUrl", "N/A",
+                "status", "ERROR",
+                "error", e.getMessage()
+            );
+            return ResponseEntity.ok(error);
+        }
+    }
+
+    @GetMapping("/azure-status")
+    @Operation(
+        summary = "Verificar status do Azure Blob Storage",
+        description = "Verifica se o Azure Blob Storage está configurado e acessível"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Status do Azure obtido com sucesso"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<Map<String, Object>> verificarStatusAzure() {
+        try {
+            boolean azureConfigured = azureBlobService.isConfigured();
+            
+            Map<String, Object> status = Map.of(
+                "azureConfigured", azureConfigured,
+                "containerName", azureBlobService.getContainerName(),
+                "status", azureConfigured ? "CONFIGURADO" : "NÃO CONFIGURADO"
+            );
+
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            Map<String, Object> error = Map.of(
+                "azureConfigured", false,
+                "containerName", "N/A",
                 "status", "ERROR",
                 "error", e.getMessage()
             );
@@ -192,6 +230,50 @@ public class CloudPdfController {
 
             // Usar método interno para testar o parse
             CapaDTO resultado = cloudPdfProcessingService.testarParseJson(jsonExample);
+            return ResponseEntity.ok(resultado);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping(value = "/upload-e-processar", consumes = "multipart/form-data")
+    @Operation(
+        summary = "Upload e processamento de PDF via serviço na nuvem",
+        description = "Faz upload do PDF para Azure Blob Storage e processa via serviço na nuvem"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "PDF processado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Arquivo inválido"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<CapaDTO> uploadEPprocessar(
+            @Parameter(description = "Arquivo PDF para upload e processamento", required = true)
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        
+        try {
+            if (arquivo.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Verificar se é um PDF
+            String contentType = arquivo.getContentType();
+            String filename = arquivo.getOriginalFilename();
+            
+            if (contentType == null || !contentType.equals("application/pdf")) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Fazer upload para Azure Blob Storage
+            String nomeBlob = azureBlobService.uploadPdf(arquivo);
+            
+            if (nomeBlob == null) {
+                return ResponseEntity.internalServerError().build();
+            }
+
+            // Processar via serviço na nuvem
+            CapaDTO resultado = cloudPdfProcessingService.processarPdfNaNuvem(nomeBlob);
+            
             return ResponseEntity.ok(resultado);
 
         } catch (Exception e) {
