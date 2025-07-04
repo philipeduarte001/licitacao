@@ -161,6 +161,7 @@ public class CloudPdfProcessingService {
      */
     private CapaDTO parseResponseToCapaDTO(String jsonResponse, String fileName) {
         try {
+            logger.info("JSON recebido da Azure: {}", jsonResponse);
             JsonNode rootNode = objectMapper.readTree(jsonResponse);
             
             // Navegar pela estrutura JSON: extracted_clausules.edital[0]
@@ -194,14 +195,15 @@ public class CloudPdfProcessingService {
             // Campos não fornecidos pelo serviço - usar valores padrão
             String organ = "";
             String headerTitle = objeto; // Usar objeto como título
-            String portal = "";
-            String edital = "";
-            String modalidade = "";
+            String portal = extractFieldValue(editalData, "portal", "");
+            String edital = extractFieldValue(editalData, "edital", "");
+            String modalidade = extractFieldValue(editalData, "modalidade", "");
             String amostra = "";
             String entrega = "";
             String cr = "";
             boolean atestado = false;
-            String impugnacao = "";
+            String impugnacao = extractFieldValue(editalData, "impugnacao", "");
+            logger.info("Valor extraído para impugnacao: {}", impugnacao);
             String obs = "Processado via serviço na nuvem";
 
             logger.info("Dados extraídos do serviço na nuvem para arquivo '{}': processo={}, objeto={}, items={}", 
