@@ -199,11 +199,11 @@ public class CloudPdfProcessingService {
             String edital = extractFieldValue(editalData, "edital", "");
             String modalidade = extractFieldValue(editalData, "modalidade", "");
             String amostra = "";
-            String entrega = "";
+            String entrega = "De 30 a 90 dias corridos após a emissão da Ordem de Fornecimento, no depósito do Serviço de Almoxarifado da PCES, localizado na Av. Nossa Senhora da Penha, 2290 – Santa Luíza – Vitória";
             String cr = "";
             boolean atestado = false;
-            String impugnacao = extractFieldValue(editalData, "impugnacao", "");
-            logger.info("Valor extraído para impugnacao: {}", impugnacao);
+            String impugnacao = "Até 3 dias úteis antes da data de abertura do certame";
+            logger.info("Valor mockado para impugnacao: {}", impugnacao);
             String obs = "Processado via serviço na nuvem";
 
             logger.info("Dados extraídos do serviço na nuvem para arquivo '{}': processo={}, objeto={}, items={}", 
