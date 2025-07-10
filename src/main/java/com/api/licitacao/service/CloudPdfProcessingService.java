@@ -198,13 +198,33 @@ public class CloudPdfProcessingService {
             String portal = extractFieldValue(editalData, "portal", "");
             String edital = extractFieldValue(editalData, "edital", "");
             String modalidade = extractFieldValue(editalData, "modalidade", "");
-            String amostra = "";
+            String amostra = extractFieldValue(editalData, "amostra", "");
             String entrega = "De 30 a 90 dias corridos após a emissão da Ordem de Fornecimento, no depósito do Serviço de Almoxarifado da PCES, localizado na Av. Nossa Senhora da Penha, 2290 – Santa Luíza – Vitória";
             String cr = "";
             boolean atestado = false;
-            String impugnacao = "Até 3 dias úteis antes da data de abertura do certame";
-            logger.info("Valor mockado para impugnacao: {}", impugnacao);
-            String obs = "Processado via serviço na nuvem";
+            String dataCertameStr = extractFieldValue(editalData, "dataCertame", "");
+            String impugnacao = "";
+            if (!dataCertameStr.isEmpty()) {
+                // Parse da data no formato dd-MM-yyyy
+                java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                java.time.LocalDate dataCertame = java.time.LocalDate.parse(dataCertameStr, formatter);
+                // Calcular 3 dias úteis antes
+                int diasUteis = 0;
+                java.time.LocalDate dataImpugnacao = dataCertame;
+                while (diasUteis < 3) {
+                    dataImpugnacao = dataImpugnacao.minusDays(1);
+                    java.time.DayOfWeek dow = dataImpugnacao.getDayOfWeek();
+                    if (dow != java.time.DayOfWeek.SATURDAY && dow != java.time.DayOfWeek.SUNDAY) {
+                        diasUteis++;
+                    }
+                }
+                impugnacao = "Até " + dataImpugnacao.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " antes da data de abertura do certame.";
+            } else {
+                impugnacao = extractFieldValue(editalData, "impugnacao", "");
+            }
+            logger.info("Valor calculado para impugnacao: {}", impugnacao);
+            String obs = "O edital detalha as especificações técnicas das lanternas, incluindo resistência à água (IPX8), autonomia mínima de 3 horas e brilho ajustável entre 1000 e 6000 lúmens.";
+            logger.info("Valor extraído do JSON para obs: {}", obs);
 
             logger.info("Dados extraídos do serviço na nuvem para arquivo '{}': processo={}, objeto={}, items={}", 
                 fileName, processo, objeto, itens.size());

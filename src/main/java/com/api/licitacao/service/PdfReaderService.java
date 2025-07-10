@@ -107,15 +107,17 @@ public class PdfReaderService {
      * Verifica se o resultado do serviço na nuvem contém dados válidos
      */
     private boolean isValidCloudResult(CapaDTO resultado) {
+        logger.info("[isValidCloudResult] Valor de obs recebido: {}", resultado != null ? resultado.obs() : null);
         if (resultado == null) {
             return false;
         }
-        
-        // Considera válido se pelo menos um campo principal está preenchido
-        return (resultado.processo() != null && !resultado.processo().trim().isEmpty()) ||
-               (resultado.objeto() != null && !resultado.objeto().trim().isEmpty()) ||
-               (resultado.edital() != null && !resultado.edital().trim().isEmpty()) ||
-               (resultado.cliente() != null && !resultado.cliente().trim().isEmpty());
+        // Considera válido se pelo menos um campo principal está preenchido E obs não está vazio
+        return (
+            (resultado.processo() != null && !resultado.processo().trim().isEmpty()) ||
+            (resultado.objeto() != null && !resultado.objeto().trim().isEmpty()) ||
+            (resultado.edital() != null && !resultado.edital().trim().isEmpty()) ||
+            (resultado.cliente() != null && !resultado.cliente().trim().isEmpty())
+        ) && (resultado.obs() != null && !resultado.obs().trim().isEmpty());
     }
 
     private CapaDTO extrairInformacoes(String texto) {
